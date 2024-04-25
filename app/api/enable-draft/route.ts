@@ -1,3 +1,3 @@
 // PASTE PROVIDED CODE HERE
 
-export default function GET() {}
+export async function GET() {}
