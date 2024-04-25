@@ -1,0 +1,111 @@
+# Vercel Integration Test
+
+Initial test for verifying implementation assumptions and collecting feedback
+
+## Prerequisites
+
+1. Make sure you have access to a Vercel account
+2. Use an exisiting live preview nextjs project or clone and commit the provided starter [Vercel NextJS Starter Repo]() to your github account
+3. Configured project is connected in Vercel account
+
+## Instructions
+
+### _Part One_
+
+- Ensure `Protection Bypass for Automation` is enabled in your connected vercel project dashboard:
+
+  - [Vercel Bypass Automatin DOCS](https://vercel.com/docs/security/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation#)
+
+- Install the `Vercel App` using the provided deep link (space TBD):
+  - [Vercel App deep link]()
+
+### _Part Two_
+
+- Follow the instructions provided on the `Vercel App` configuration screen using the provided token:
+
+  - token: `V5eINLnC5hLNy1W2PqQnvPR3`
+
+- Create an endpoint under the `api` directory for enabling draft mode in your nextjs project
+
+  - example: `/app/api/enable-draft/route.ts`
+
+- Add the provided code snippet below to the newly created endpoint `route.ts` file:
+
+</br>
+
+```typescript
+import { draftMode } from "next/headers";
+import { redirect } from "next/navigation";
+
+export async function GET(request: Request): Promise<Response | void> {
+  const { origin: base, path, bypassToken } = parseRequestUrl(request.url);
+
+  if (!bypassToken) {
+    return new Response(
+      "Missing required value for query parameter `x-vercel-protection-bypass`",
+      { status: 401 }
+    );
+  }
+
+  if (bypassToken !== process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
+    return new Response(
+      "The provided `x-vercel-protection-bypass` does match the bypass secret for this deployment.",
+      { status: 403 }
+    );
+  }
+
+  if (!path) {
+    return new Response("Missing required value for query parameter `path`", {
+      status: 400,
+    });
+  }
+
+  draftMode().enable();
+
+  const redirectUrl = buildRedirectUrl({ path, base, bypassToken });
+
+  redirect(redirectUrl);
+}
+
+const parseRequestUrl = (
+  requestUrl: string
+): {
+  origin: string;
+  path: string;
+  bypassToken: string;
+} => {
+  const { searchParams, origin } = new URL(requestUrl);
+
+  const rawPath = searchParams.get("path") || "";
+  const bypassToken = searchParams.get("x-vercel-protection-bypass") || "";
+
+  const path = decodeURIComponent(rawPath);
+
+  return {
+    origin,
+    path,
+    bypassToken,
+  };
+};
+
+const buildRedirectUrl = ({
+  path,
+  base,
+  bypassToken,
+}: {
+  path: string;
+  base: string;
+  bypassToken: string;
+}): string => {
+  const redirectUrl = new URL(path, base);
+
+  redirectUrl.searchParams.set("x-vercel-protection-bypass", bypassToken);
+  redirectUrl.searchParams.set("x-vercel-set-bypass-cookie", "samesitenone");
+
+  return redirectUrl.toString();
+};
+```
+
+### _Part Three_
+
+- Save and commit changes to the starter repo to deploy the connected project
