@@ -1,2 +1,3 @@
 // PASTE PROVIDED CODE HERE
-export {};
+
+export default function GET() {}
